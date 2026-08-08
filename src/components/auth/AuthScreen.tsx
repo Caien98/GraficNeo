@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Sparkles, Mail, Lock, User, AlertCircle, Loader2 } from 'lucide-react';
+import Terms from '@/pages/Terms';
+import PrivacyPolicy from '@/pages/PrivacyPolicy';
 
 export function AuthScreen() {
   const { signIn, signUp, resetPassword } = useAuth();
@@ -13,6 +15,9 @@ export function AuthScreen() {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [dbError, setDbError] = useState(false);
+
+  // view controls whether we're showing the auth UI or one of the policy pages
+  const [view, setView] = useState<'auth' | 'terms' | 'privacy'>('auth');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +56,14 @@ export function AuthScreen() {
       setLoading(false);
     }
   };
+
+  // If user navigates to Terms or Privacy, render those pages and pass onBack to return to auth view
+  if (view === 'terms') {
+    return <Terms onBack={() => setView('auth')} />;
+  }
+  if (view === 'privacy') {
+    return <PrivacyPolicy onBack={() => setView('auth')} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-brand-50 via-white to-accent-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-950">
@@ -149,12 +162,18 @@ export function AuthScreen() {
           <div className="mt-6 text-center text-sm text-gray-500 dark:text-neutral-400">
             {mode === 'login' && (
               <>
-                <button onClick={() => { setMode('forgot'); setError(null); setDbError(false); }} className="hover:text-brand-600 transition-colors">
+                <button
+                  onClick={() => { setMode('forgot'); setError(null); setDbError(false); }}
+                  className="hover:text-brand-600 transition-colors"
+                >
                   Forgot password?
                 </button>
                 <div className="mt-3">
                   Don't have an account?{' '}
-                  <button onClick={() => { setMode('signup'); setError(null); setDbError(false); }} className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+                  <button
+                    onClick={() => { setMode('signup'); setError(null); setDbError(false); }}
+                    className="text-brand-600 dark:text-brand-400 font-semibold hover:underline"
+                  >
                     Sign up
                   </button>
                 </div>
@@ -163,13 +182,19 @@ export function AuthScreen() {
             {mode === 'signup' && (
               <div>
                 Already have an account?{' '}
-                <button onClick={() => { setMode('login'); setError(null); setDbError(false); }} className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+                <button
+                  onClick={() => { setMode('login'); setError(null); setDbError(false); }}
+                  className="text-brand-600 dark:text-brand-400 font-semibold hover:underline"
+                >
                   Sign in
                 </button>
               </div>
             )}
             {mode === 'forgot' && (
-              <button onClick={() => { setMode('login'); setError(null); setDbError(false); }} className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+              <button
+                onClick={() => { setMode('login'); setError(null); setDbError(false); }}
+                className="text-brand-600 dark:text-brand-400 font-semibold hover:underline"
+              >
                 Back to sign in
               </button>
             )}
@@ -177,7 +202,15 @@ export function AuthScreen() {
         </div>
 
         <p className="text-center text-xs text-gray-400 dark:text-neutral-600 mt-6">
-          By continuing, you agree to GraficNeo's Terms & Privacy Policy.
+          By continuing, you agree to GraficNeo's{' '}
+          <button onClick={() => setView('terms')} className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+            Terms
+          </button>{' '}
+          and{' '}
+          <button onClick={() => setView('privacy')} className="text-brand-600 dark:text-brand-400 font-semibold hover:underline">
+            Privacy Policy
+          </button>
+          .
         </p>
       </div>
     </div>
