@@ -70,7 +70,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: { username, display_name: displayName },
       },
     });
-    if (error) return { error: error.message };
+
+    // If there's an auth error, provide a clearer message for the common SMTP/confirmation failure.
+    if (error) {
+      const msg = error.message || '';
+      // Detect Supabase SMTP/confirmation send failures and return actionable guidance.
+      if (msg.toLowerCase().includes('error sending confirmation') || msg.toLowerCase().includes('smtp') || msg.toLowerCase().includes('confirmation')) {
+        return { error: 'Unable to send confirmation email. This usually means the Supabase project email (SMTP) is not configured. Please configure SMTP in your Supabase project or contact the site administrator.' };
+      }
+      return { error: msg };
+    }
 
     if (data.user) {
       const { error: profileError } = await supabase
