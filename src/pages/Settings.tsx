@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { UserSettings } from '@/lib/types';
-import { Moon, Sun, Monitor, Bell, Lock, Shield, LogOut, Loader2, UserX, Volume2 } from 'lucide-react';
+import { Moon, Sun, Monitor, Bell, Lock, Shield, LogOut, Loader2, UserX, Volume2, Trash2 } from 'lucide-react';
 
 export function Settings({ onSignOut }: { onSignOut: () => void }) {
   const { user, profile, refreshProfile } = useAuth();
@@ -11,6 +11,12 @@ export function Settings({ onSignOut }: { onSignOut: () => void }) {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [mutedUsers, setMutedUsers] = useState<{ id: string; username: string; avatar_url: string | null }[]>([]);
+
+  // Delete account UI state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -53,6 +59,48 @@ export function Settings({ onSignOut }: { onSignOut: () => void }) {
   if (loading) {
     return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /></div>;
   }
+
+  const openDeleteModal = () => {
+    setDeleteConfirmText('');
+    setDeleteError(null);
+    setShowDeleteModal(true);
+  };
+
+  const canConfirmDelete = () => {
+    if (!profile) return false;
+    const expected = (profile.username || '').trim();
+    const entered = deleteConfirmText.trim();
+    return entered.length > 0 && (entered === expected || entered.toUpperCase() === 'DELETE');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { error } = await supabase.rpc('delete_own_account');
+      if (error) {
+        setDeleteError(error.message || 'Failed to delete account');
+        setDeleting(false);
+        return;
+      }
+
+      // After successful deletion, sign out and call onSignOut to redirect to auth
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        // ignore sign out errors, proceed to call onSignOut
+      }
+
+      // Call parent's sign out handler (it also signs out) and then optionally show a message
+      onSignOut();
+      // If you want to show a brief message, the AuthScreen or caller can handle flash messages
+    } catch (err: any) {
+      console.error('delete account error', err);
+      setDeleteError(err?.message || 'An unexpected error occurred');
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-4 pb-20 md:pb-8">
@@ -134,7 +182,53 @@ export function Settings({ onSignOut }: { onSignOut: () => void }) {
         </button>
       </Section>
 
+      {/* Danger Zone: Delete Account */}
+      <Section icon={<UserX className="w-5 h-5 text-error-600" />} title="Danger Zone">
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">Permanently delete your account and all associated data. This action cannot be undone.</p>
+          <button
+            onClick={openDeleteModal}
+            className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-red-600 text-white hover:opacity-90 transition-colors"
+          >
+            <Trash2 className="w-5 h-5" /> Delete Account
+          </button>
+        </div>
+      </Section>
+
       <p className="text-center text-xs text-gray-400 mt-8">Lumora v1.0 — Built with Supabase</p>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl w-full max-w-xl p-6">
+            <h3 className="text-lg font-semibold text-error-600">Delete account</h3>
+            <p className="text-sm text-gray-600 mt-2">This will permanently delete your account and all associated data (profile, posts, comments, likes, follows, messages, stories, notifications, etc.). This cannot be undone.</p>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700">Type your username (<span className="font-semibold">{profile?.username}</span>) or <span className="font-semibold">DELETE</span> to confirm</label>
+              <input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-gray-200 dark:border-neutral-800 px-3 py-2 bg-white dark:bg-neutral-900"
+                placeholder="Type username or DELETE"
+              />
+            </div>
+
+            {deleteError && <p className="text-sm text-error-600 mt-3">{deleteError}</p>}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button onClick={() => setShowDeleteModal(false)} className="px-4 py-2 rounded-xl border">Cancel</button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={!canConfirmDelete() || deleting}
+                className={`px-4 py-2 rounded-xl text-white ${canConfirmDelete() && !deleting ? 'bg-red-600 hover:opacity-90' : 'bg-red-300 cursor-not-allowed'}`}
+              >
+                {deleting ? 'Deleting...' : 'Delete account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
