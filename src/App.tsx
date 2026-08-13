@@ -14,6 +14,7 @@ import { ProfilePage } from '@/pages/ProfilePage';
 import { Settings } from '@/pages/Settings';
 import { AdminPanel } from '@/pages/AdminPanel';
 import { Loader2 } from 'lucide-react';
+import ReportIssueButton from '@/components/shared/ReportIssueButton';
 
 function AppContent() {
   const { user, profile, loading } = useAuth();
@@ -137,6 +138,9 @@ function AppContent() {
         unreadNotifications={unreadNotifications}
         unreadMessages={unreadMessages}
       />
+
+      {/* Desktop-only floating Report Issue button */}
+      <ReportIssueButton />
     </div>
   );
 }
