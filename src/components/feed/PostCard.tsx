@@ -236,7 +236,7 @@ export function PostCard({ post, onProfileClick, onPostClick, onDeleted }: PostC
           {/* Share button - uses existing permalink logic if available */}
           <div className="p-2" onClick={(e) => e.stopPropagation()}>
             <ShareButton
-              url={typeof window !== 'undefined' ? `${window.location.origin}/p/${post.id}` : undefined}
+              url={typeof window !== 'undefined' ? `${window.location.origin}/post/${post.id}` : undefined}
               title={`${post.profile?.username || 'GraficNeo'}'s post`}
               text={post.caption || 'Check out this post on GraficNeo'}
               className="-m-2"
